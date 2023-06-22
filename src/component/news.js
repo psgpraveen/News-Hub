@@ -72,11 +72,7 @@ capitalize(string) {
 
   changeApiKey() {
     const apiKeys =process.env.REACT_APP_API_NEW_KEYS.split(",");
-    // const apiKeys  =[
-    //   '9c28c60143534b5f8807071f7c6ba4ec',
-    //   '6cdc08ed71f045aa947a214eea5d6fec',
-    //   '418928777cf64c5f88cc87f85039d44e',
-    //   '876ebc258e0244058c3f3adbac9501a5',   ]  
+    
   
     const { currentApiKey } = this.state;
     const currentIndex = apiKeys.indexOf(currentApiKey);
