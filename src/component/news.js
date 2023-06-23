@@ -3,7 +3,6 @@ import Newsitam from "./newsitam";
 import Spiner from "./spiner";
 import PropTypes from "prop-types";
 import InfiniteScroll from "react-infinite-scroll-component";
-// require('dotenv').config();
 
 export class News extends Component {
   static defaultProps = {
@@ -11,14 +10,13 @@ export class News extends Component {
     pageSize: 12,
     category: "general",
     headlines: "top-headlines",
-    apiKey: process.env.REACT_APP_NEWS_API,
+    loadMorePageSize: 12,
   };
 
   static propTypes = {
     country: PropTypes.string,
     pageSize: PropTypes.number,
     category: PropTypes.string,
-    apiKey: PropTypes.string,
   };
 
   constructor(props) {
@@ -26,43 +24,36 @@ export class News extends Component {
     this.state = {
       articles: [],
       loading: true,
-      page: 1,
       totalResults: 0,
-      currentApiKeyIndex: 0,
-      headlines: "top-headlines"
+      page: 1,
+      headlines: "top-headlines",
     };
     document.title = `${this.capitalize(
       this.props.category
     )} - Psg-News-Website`;
   }
-capitalize(string) {
+
+  capitalize(string) {
     return string.charAt(0).toUpperCase() + string.slice(1);
   }
-  
+
   async update() {
     this.props.setProgress(10);
-    const url = `https://newsapi.org/v2/${this.props.headlines}?country=${this.props.country}&category=${this.props.category}&apiKey=${this.state.currentApiKey}&page=${this.state.page}&pageSize=${this.props.pageSize}`;
-    
-    try {  
-      
-      this.setState({ loading: true });
-      let data = await fetch(url);
-      this.props.setProgress(30);
-      let passdata = await data.json();
-      this.props.setProgress(60);
-      if (passdata.articles.length === 0) {
-      this.changeApiKey();
-       } else {
-      this.setState({
-        articles: passdata.articles,
-        totalResults: passdata.totalResults,
-        loading: false,
-        totalPage: Math.ceil(passdata.totalResults / this.props.pageSize),
-      });}
-    } catch (error) {
-      console.error("Error occurred while fetching news:", error);
-      this.changeApiKey(); // Change the API key on error
-    }
+    const url = `https://saurav.tech/NewsAPI/${this.props.headlines}/category/${this.props.category}/${this.props.country}.json`;
+
+    this.setState({ loading: true });
+    let data = await fetch(url);
+    this.props.setProgress(30);
+    let passdata = await data.json();
+    this.props.setProgress(60);
+
+    this.setState({
+      articles: passdata.articles,
+      totalResults: passdata.totalResults,
+      loading: false,
+      totalPage: Math.ceil(passdata.totalResults / this.props.pageSize),
+    });
+
     this.props.setProgress(100);
   }
 
@@ -70,71 +61,46 @@ capitalize(string) {
     this.update();
   }
 
-  changeApiKey() {
-    const apiKeys =process.env.REACT_APP_API_NEW_KEYS.split(",");
-    
-  
-    const { currentApiKey } = this.state;
-    const currentIndex = apiKeys.indexOf(currentApiKey);
-    const nextIndex = (currentIndex + 1) % apiKeys.length;
-    const newApiKey = apiKeys[nextIndex];
-  
-    this.setState({ currentApiKey: newApiKey }, () => {
-      console.log("API key changed:");
-      this.update();
-    });
-  }
-  
-
-
-  handNext = () => {
-    const { page, totalPage } = this.state;
-
-    if (page + 1 <= totalPage) {
-      this.setState({ page: page + 1 }, () => {
-        this.update();
-      });
-    }
-  };
-
-  handBack = () => {
-    const { page } = this.state;
-
-    if (page - 1 >= 1) {
-      this.setState({ page: page - 1 }, () => {
-        this.update();
-      });
-    }
-  };
   fetchMoreData = async () => {
-    this.setState({ page: this.state.page + 1 });
-    const url = `https://newsapi.org/v2/${this.props.headlines}?country=${this.props.country}&category=${this.props.category}&apiKey=${this.state.currentApiKey}&page=${this.state.page}&pageSize=${this.props.pageSize}`;
+    const { articles, page } = this.state;
+    const startIndex = (page - 1) * this.props.pageSize;
+    const endIndex = startIndex + this.props.pageSize;
+
+    const url = `https://saurav.tech/NewsAPI/${this.props.headlines}/category/${this.props.category}/${this.props.country}.json`;
+
+    this.setState({ loading: true });
 
     try {
-      this.setState({ loading: true });
-      let data = await fetch(url);
-      let passdata = await data.json();
+      const response = await fetch(url);
+      const passdata = await response.json();
+
+      const additionalArticles = passdata.articles.slice(
+        startIndex,
+        endIndex
+      );
+
       this.setState({
-        articles: this.state.articles.concat(passdata.articles),
-        totalResults: passdata.totalResults,
+        articles: articles.concat(additionalArticles),
         loading: false,
-        totalPage: Math.ceil(passdata.totalResults / this.props.pageSize),
+        page: page + 1,
       });
     } catch (error) {
-      console.error("Error occurred while fetching news:", error);
-      this.changeApiKey();
+      console.error("Error fetching more articles:", error);
+      this.setState({ loading: false });
     }
   };
 
   render() {
     return (
-      <>{this.state.loading && <Spiner/>}
-        <div className=" d-flex">
-          <InfiniteScroll
+      <>
+      
+        {this.state.loading && <Spiner />}
+        <div className="d-flex">
+          <InfiniteScroll 
             dataLength={this.state.articles.length}
             next={this.fetchMoreData}
-            hasMore={this.state.articles.length !== this.state.totalResults}
-            loader={this.state.loading && <Spiner/>}
+            hasMore={true}
+            loader={this.state.loading && this.state.articles.length > 0 &&<Spiner />}
           >
             <div className="container">
               <div className="row">

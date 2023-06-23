@@ -12,7 +12,7 @@ export default class App extends Component {
   render() {
     return (
       <>
-        <Router>
+        <Router basename="/News-Hub">
           <Nav />
           <LoadingBar
             color="#f11946"
